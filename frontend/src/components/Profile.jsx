@@ -34,13 +34,16 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import AddAPhotoIcon from "@mui/icons-material/AddAPhoto";
 import CancelIcon from "@mui/icons-material/Cancel";
 
+// Use API base from Vite env; fallback to local for safety
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api").replace(/\/$/, "");
+
 // ---------------------- CreatedEventRow Component ---------------------- //
 function CreatedEventRow({ event, onDelete }) {
   const [registrationCount, setRegistrationCount] = useState(null);
 
   useEffect(() => {
     axios
-      .get(`http://127.0.0.1:8000/api/events/${event.id}/registration_count/`)
+      .get(`${API_BASE_URL}/events/${event.id}/registration_count/`)
       .then((response) => {
         setRegistrationCount(response.data.registration_count);
       })
@@ -173,7 +176,7 @@ function Profile() {
       return;
     }
     try {
-      const response = await axios.get("http://127.0.0.1:8000/api/profile/", {
+      const response = await axios.get(`${API_BASE_URL}/profile/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setProfile(response.data);
@@ -196,7 +199,7 @@ function Profile() {
       try {
         const token = localStorage.getItem("access");
         const response = await axios.patch(
-          "http://127.0.0.1:8000/api/profile/",
+          `${API_BASE_URL}/profile/`,
           formData,
           {
             headers: {
@@ -216,7 +219,7 @@ function Profile() {
     try {
       const token = localStorage.getItem("access");
       const response = await axios.patch(
-        "http://127.0.0.1:8000/api/profile/",
+        `${API_BASE_URL}/profile/`,
         { profile_picture: null },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -229,7 +232,7 @@ function Profile() {
   const handleDeleteEvent = async (eventId) => {
     const token = localStorage.getItem("access");
     try {
-      await axios.delete(`http://127.0.0.1:8000/api/events/${eventId}/`, {
+      await axios.delete(`${API_BASE_URL}/events/${eventId}/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       fetchProfile();
@@ -242,7 +245,7 @@ function Profile() {
     const token = localStorage.getItem("access");
     try {
       await axios.delete(
-        `http://127.0.0.1:8000/api/events/${eventId}/register/`,
+        `${API_BASE_URL}/events/${eventId}/register/`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       fetchProfile();
