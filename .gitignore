@@ -43,3 +43,7 @@ ENV/
 staticfiles/
 media/
 static/
+
+
+.env
+*/.env
