@@ -5,30 +5,27 @@ from datetime import timedelta
 from dotenv import load_dotenv
 import dj_database_url
 
-# Load environment variables from the .env file
+# Load environment variables from .env
 load_dotenv()
 
-# Base directory
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# SECURITY WARNING: keep the secret key used in production secret!
+# Security
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "your-default-secret-key")
-
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "t")
 
-# Allowed hosts: comma-separated list in .env
+# Hosts
 _raw_allowed = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1")
 ALLOWED_HOSTS = [h.strip() for h in _raw_allowed.split(",") if h.strip()]
 
-# Build CSRF_TRUSTED_ORIGINS from ALLOWED_HOSTS (useful for deploys)
+# CSRF trusted origins (helpful for deploys)
 CSRF_TRUSTED_ORIGINS = []
 for host in ALLOWED_HOSTS:
     if host and host not in ("localhost", "127.0.0.1"):
         if not host.startswith("http"):
             CSRF_TRUSTED_ORIGINS.append(f"https://{host}")
 
-# Application definition
+# Apps & middleware
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -37,15 +34,15 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
-    "rest_framework_simplejwt",  # JWT authentication
-    "corsheaders",               # CORS handling
-    "events_app",                # Your application
+    "rest_framework_simplejwt",
+    "corsheaders",
+    "events_app",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
-    "corsheaders.middleware.CorsMiddleware",  # CORS middleware
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -55,7 +52,6 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "events.urls"
 
-# Django REST Framework and JWT settings
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
@@ -90,9 +86,6 @@ TEMPLATES = [
 WSGI_APPLICATION = "events.wsgi.application"
 
 # ---------------- DATABASE CONFIG ----------------
-# Behavior:
-# - If USE_LOCAL_POSTGRES=True, use LOCAL_DB_* environment variables (no SSL)
-# - Otherwise, read DATABASE_URL and use dj_database_url.parse (remote DB)
 USE_LOCAL = os.getenv("USE_LOCAL_POSTGRES", "True").lower() in ("true", "1", "t")
 
 if USE_LOCAL:
@@ -115,7 +108,7 @@ if USE_LOCAL:
     }
 else:
     DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'db.sqlite3'}")
-    SSL_REQUIRE = os.getenv("DATABASE_SSL_REQUIRE", "False").lower() in ("true", "1", "t")
+    SSL_REQUIRE = os.getenv("DATABASE_SSL_REQUIRE", "True").lower() in ("true", "1", "t")
     DATABASES = {
         "default": dj_database_url.parse(DATABASE_URL, conn_max_age=600, ssl_require=SSL_REQUIRE)
     }
@@ -128,28 +121,26 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-# Localization settings
+# Localization
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = os.getenv("TIME_ZONE", "UTC")
 USE_I18N = True
 USE_TZ = True
 
-# Static files settings
+# Static & media
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-# Media files settings
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-# Default auto field
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# CORS settings
+# CORS
 CORS_ALLOW_ALL_ORIGINS = os.getenv("CORS_ALLOW_ALL_ORIGINS", "True").lower() in ("true", "1", "t")
 
-# Email settings for Gmail SMTP (left to env)
+# Email (left to env)
 EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
 EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
 EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
@@ -158,3 +149,8 @@ EMAIL_HOST_USER = os.getenv("GMAIL_EMAIL")
 EMAIL_HOST_PASSWORD = os.getenv("GMAIL_PASSWORD")
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
+# Debug output to help you verify DB config locally
+if DEBUG:
+    from pprint import pprint
+    print("DEBUG is ON. Current DATABASES['default']:")
+    pprint(DATABASES["default"])
