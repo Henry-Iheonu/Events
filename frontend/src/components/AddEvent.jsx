@@ -9,6 +9,8 @@ import {
   MenuItem,
   Container,
   IconButton,
+  Grid,
+  CssBaseline,
 } from "@mui/material";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { Brightness4, Brightness7 } from "@mui/icons-material";
@@ -39,6 +41,9 @@ function AddEvent() {
       },
     },
   });
+
+  // API base from Vite .env (fallback to Render hosted URL if missing)
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "https://events-1-amk2.onrender.com/api";
 
   // Form state variables
   const [title, setTitle] = useState("");
@@ -84,7 +89,7 @@ function AddEvent() {
     }
 
     axios
-      .post("http://127.0.0.1:8000/api/events/", newEvent, {
+      .post(`${API_BASE_URL}/events/`, newEvent, {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
       .then(() => navigate("/"))
@@ -93,12 +98,31 @@ function AddEvent() {
 
   return (
     <ThemeProvider theme={theme}>
+      <CssBaseline />
+
       {/* Dark/Light toggle button in top-right */}
-      <Box sx={{ position: "fixed", top: 16, right: 16, zIndex: 1300 }}>
-        <IconButton onClick={() => setDarkMode(!darkMode)} color="inherit">
+      <Box
+        sx={{
+          position: "fixed",
+          top: 16,
+          right: 16,
+          zIndex: 1300,
+          // small box so it won't cause overflow
+          p: 0.5,
+          borderRadius: 1,
+        }}
+      >
+        <IconButton
+          onClick={() => setDarkMode(!darkMode)}
+          color="inherit"
+          aria-label="toggle theme"
+          size="medium"
+        >
           {darkMode ? <Brightness7 /> : <Brightness4 />}
         </IconButton>
       </Box>
+
+      {/* Root wrapper — use width:100% (not 100vw) and hide horizontal overflow to avoid wiggle */}
       <Box
         sx={{
           // Use the same gradient background as Home.jsx with a smooth transition
@@ -106,28 +130,31 @@ function AddEvent() {
             ? "linear-gradient(135deg, #0f0c29, #302b63, #24243e)"
             : "linear-gradient(135deg, #e0eafc, #cfdef3)",
           minHeight: "100vh",
-          width: "100vw",
+          width: "100%",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          p: 2,
+          p: { xs: 2, sm: 4 },
           transition: "all 0.5s ease",
+          boxSizing: "border-box",
+          overflowX: "hidden", // prevents horizontal wiggle
         }}
       >
         <Container
-          maxWidth="sm"
+          maxWidth="md"
           disableGutters
           sx={{
             background: "background.paper",
             border: "2px solid",
             borderColor: "primary.main",
             boxShadow: "0 0 15px rgba(100, 255, 218, 0.8)",
-            p: 4,
+            p: { xs: 3, sm: 4 },
             borderRadius: 2,
             textAlign: "center",
             width: "100%",
-            maxWidth: "500px",
+            maxWidth: 820, // allow wider layout for desktop but still constrained
             transition: "all 0.5s ease",
+            boxSizing: "border-box",
           }}
         >
           <Typography
@@ -137,105 +164,25 @@ function AddEvent() {
             Add New Event
           </Typography>
 
-          <form onSubmit={handleSubmit}>
-            {/* All TextFields use nested selectors to apply theme-based colors */}
-            <TextField
-              label="Title"
-              fullWidth
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              variant="standard"
-              sx={{
-                mb: 2,
-                "& .MuiInputBase-input": { color: "text.primary" },
-                "& .MuiInputLabel-root": { color: "text.secondary" },
-              }}
-            />
-            <TextField
-              label="Description"
-              fullWidth
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              required
-              variant="standard"
-              multiline
-              rows={3}
-              sx={{
-                mb: 2,
-                "& .MuiInputBase-input": { color: "text.primary" },
-                "& .MuiInputLabel-root": { color: "text.secondary" },
-              }}
-            />
-            <TextField
-              label="Date"
-              type="date"
-              fullWidth
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              required
-              variant="standard"
-              sx={{
-                mb: 2,
-                "& .MuiInputBase-input": { color: "text.primary" },
-                "& .MuiInputLabel-root": { color: "text.secondary" },
-              }}
-            />
-            <TextField
-              label="Time"
-              type="time"
-              fullWidth
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              required
-              variant="standard"
-              sx={{
-                mb: 2,
-                "& .MuiInputBase-input": { color: "text.primary" },
-                "& .MuiInputLabel-root": { color: "text.secondary" },
-              }}
-            />
-            <TextField
-              label="Location"
-              fullWidth
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              required
-              variant="standard"
-              sx={{
-                mb: 2,
-                "& .MuiInputBase-input": { color: "text.primary" },
-                "& .MuiInputLabel-root": { color: "text.secondary" },
-              }}
-            />
-
-            <TextField
-              select
-              label="Event Type"
-              fullWidth
-              value={eventType}
-              onChange={(e) => setEventType(e.target.value)}
-              required
-              variant="standard"
-              sx={{
-                mb: 2,
-                "& .MuiInputBase-input": { color: "text.primary" },
-                "& .MuiInputLabel-root": { color: "text.secondary" },
-              }}
-            >
-              {predefinedEventTypes.map((type, index) => (
-                <MenuItem key={index} value={type}>
-                  {type}
-                </MenuItem>
-              ))}
-            </TextField>
-
-            {eventType === "Other" && (
+          <Box
+            component="form"
+            onSubmit={handleSubmit}
+            noValidate
+            sx={{
+              // grid layout: single column on small screens, two-column on md+
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+              gap: 2,
+              alignItems: "start",
+            }}
+          >
+            {/* Left column */}
+            <Box sx={{ gridColumn: { xs: "1", md: "1 / 2" } }}>
               <TextField
-                label="Custom Event Type"
+                label="Title"
                 fullWidth
-                value={customEventType}
-                onChange={(e) => setCustomEventType(e.target.value)}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
                 required
                 variant="standard"
                 sx={{
@@ -244,52 +191,187 @@ function AddEvent() {
                   "& .MuiInputLabel-root": { color: "text.secondary" },
                 }}
               />
-            )}
 
-            <TextField
-              label="Organizer"
-              fullWidth
-              value={organizer}
-              onChange={(e) => setOrganizer(e.target.value)}
-              required
-              variant="standard"
-              sx={{
-                mb: 2,
-                "& .MuiInputBase-input": { color: "text.primary" },
-                "& .MuiInputLabel-root": { color: "text.secondary" },
-              }}
-            />
-            <TextField
-              label="Capacity"
-              type="number"
-              fullWidth
-              value={capacity}
-              onChange={(e) => setCapacity(e.target.value)}
-              required
-              variant="standard"
-              sx={{
-                mb: 3,
-                "& .MuiInputBase-input": { color: "text.primary" },
-                "& .MuiInputLabel-root": { color: "text.secondary" },
-              }}
-            />
+              <TextField
+                label="Description"
+                fullWidth
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                required
+                variant="standard"
+                multiline
+                rows={4}
+                sx={{
+                  mb: 2,
+                  "& .MuiInputBase-input": { color: "text.primary" },
+                  "& .MuiInputLabel-root": { color: "text.secondary" },
+                }}
+              />
 
-            <Button
-              variant="contained"
-              type="submit"
-              fullWidth
+              <Grid container spacing={2} sx={{ mb: 2 }}>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Date"
+                    type="date"
+                    fullWidth
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    required
+                    variant="standard"
+                    InputLabelProps={{ shrink: true }}
+                    sx={{
+                      "& .MuiInputBase-input": { color: "text.primary" },
+                      "& .MuiInputLabel-root": { color: "text.secondary" },
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Time"
+                    type="time"
+                    fullWidth
+                    value={time}
+                    onChange={(e) => setTime(e.target.value)}
+                    required
+                    variant="standard"
+                    InputLabelProps={{ shrink: true }}
+                    sx={{
+                      "& .MuiInputBase-input": { color: "text.primary" },
+                      "& .MuiInputLabel-root": { color: "text.secondary" },
+                    }}
+                  />
+                </Grid>
+              </Grid>
+
+              <TextField
+                label="Location"
+                fullWidth
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                required
+                variant="standard"
+                sx={{
+                  mb: 2,
+                  "& .MuiInputBase-input": { color: "text.primary" },
+                  "& .MuiInputLabel-root": { color: "text.secondary" },
+                }}
+              />
+            </Box>
+
+            {/* Right column */}
+            <Box sx={{ gridColumn: { xs: "1", md: "2 / 3" } }}>
+              <TextField
+                select
+                label="Event Type"
+                fullWidth
+                value={eventType}
+                onChange={(e) => setEventType(e.target.value)}
+                required
+                variant="standard"
+                sx={{
+                  mb: 2,
+                  "& .MuiInputBase-input": { color: "text.primary" },
+                  "& .MuiInputLabel-root": { color: "text.secondary" },
+                }}
+              >
+                {predefinedEventTypes.map((type, index) => (
+                  <MenuItem key={index} value={type}>
+                    {type}
+                  </MenuItem>
+                ))}
+              </TextField>
+
+              {eventType === "Other" && (
+                <TextField
+                  label="Custom Event Type"
+                  fullWidth
+                  value={customEventType}
+                  onChange={(e) => setCustomEventType(e.target.value)}
+                  required
+                  variant="standard"
+                  sx={{
+                    mb: 2,
+                    "& .MuiInputBase-input": { color: "text.primary" },
+                    "& .MuiInputLabel-root": { color: "text.secondary" },
+                  }}
+                />
+              )}
+
+              <TextField
+                label="Organizer"
+                fullWidth
+                value={organizer}
+                onChange={(e) => setOrganizer(e.target.value)}
+                required
+                variant="standard"
+                sx={{
+                  mb: 2,
+                  "& .MuiInputBase-input": { color: "text.primary" },
+                  "& .MuiInputLabel-root": { color: "text.secondary" },
+                }}
+              />
+              <TextField
+                label="Capacity"
+                type="number"
+                fullWidth
+                value={capacity}
+                onChange={(e) => setCapacity(e.target.value)}
+                required
+                variant="standard"
+                sx={{
+                  mb: 3,
+                  "& .MuiInputBase-input": { color: "text.primary" },
+                  "& .MuiInputLabel-root": { color: "text.secondary" },
+                }}
+                inputProps={{ min: 0 }}
+              />
+
+              {/* On small screens, ensure submit appears below everything */}
+              <Box sx={{ display: { xs: "block", md: "none" } }}>
+                <Button
+                  variant="contained"
+                  type="submit"
+                  fullWidth
+                  sx={{
+                    backgroundColor: "primary.main",
+                    color: "background.default",
+                    fontWeight: "bold",
+                    "&:hover": {
+                      backgroundColor: darkMode ? "#52e0c4" : "#1976d2",
+                    },
+                  }}
+                >
+                  Submit
+                </Button>
+              </Box>
+            </Box>
+
+            {/* On md+ screens, place Submit spanning both columns at bottom-right */}
+            <Box
               sx={{
-                backgroundColor: "primary.main",
-                color: "background.default",
-                fontWeight: "bold",
-                "&:hover": {
-                  backgroundColor: darkMode ? "#52e0c4" : "#1976d2",
-                },
+                gridColumn: "1 / -1",
+                display: { xs: "none", md: "flex" },
+                justifyContent: "flex-end",
               }}
             >
-              Submit
-            </Button>
-          </form>
+              <Button
+                variant="contained"
+                type="submit"
+                sx={{
+                  backgroundColor: "primary.main",
+                  color: "background.default",
+                  fontWeight: "bold",
+                  px: 4,
+                  py: 1.25,
+                  "&:hover": {
+                    backgroundColor: darkMode ? "#52e0c4" : "#1976d2",
+                  },
+                }}
+              >
+                Submit
+              </Button>
+            </Box>
+          </Box>
 
           {error && (
             <Typography color="error" sx={{ mt: 2 }}>

@@ -18,6 +18,9 @@ import {
   TableRow,
   Paper,
   LinearProgress,
+  CssBaseline,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import {
@@ -34,12 +37,15 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import AddAPhotoIcon from "@mui/icons-material/AddAPhoto";
 import CancelIcon from "@mui/icons-material/Cancel";
 
-// Use API base from Vite env; fallback to local for safety
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api").replace(/\/$/, "");
+// Use API base from Vite env; fallback to Render hosted URL if missing
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL;
 
 // ---------------------- CreatedEventRow Component ---------------------- //
 function CreatedEventRow({ event, onDelete }) {
   const [registrationCount, setRegistrationCount] = useState(null);
+  const theme = useTheme();
+  const isXs = useMediaQuery(theme.breakpoints.down("sm"));
 
   useEffect(() => {
     axios
@@ -87,7 +93,7 @@ function CreatedEventRow({ event, onDelete }) {
             variant="determinate"
             value={progress}
             sx={{
-              height: 30,
+              height: isXs ? 18 : 30,
               borderRadius: 5,
               "& .MuiLinearProgress-bar": {
                 backgroundColor:
@@ -105,6 +111,7 @@ function CreatedEventRow({ event, onDelete }) {
               transform: "translateX(-50%)",
               fontWeight: "bold",
               color: "black",
+              mt: isXs ? "2px" : "6px",
             }}
           >
             {progress}%
@@ -129,6 +136,10 @@ function Profile() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
+  const themeBreakpoints = useTheme();
+  const isSm = useMediaQuery(themeBreakpoints.breakpoints.down("sm"));
+  const isMd = useMediaQuery(themeBreakpoints.breakpoints.down("md"));
+
   // Deterministic gradient generator based on username
   const hashCode = (str) => {
     let hash = 0;
@@ -139,7 +150,7 @@ function Profile() {
   };
 
   const generateGradientFromUsername = (username) => {
-    const baseHash = hashCode(username);
+    const baseHash = hashCode(username || "");
     const getColor = (offset) => {
       let colorInt = (baseHash + offset) % 16777215;
       if (colorInt < 0) colorInt += 16777215;
@@ -181,6 +192,7 @@ function Profile() {
       });
       setProfile(response.data);
     } catch (err) {
+      console.error(err);
       setError("Failed to fetch profile.");
     } finally {
       setLoading(false);
@@ -189,6 +201,7 @@ function Profile() {
 
   useEffect(() => {
     fetchProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
   const handleImageChange = async (event) => {
@@ -257,16 +270,20 @@ function Profile() {
   if (loading) {
     return (
       <ThemeProvider theme={theme}>
+        <CssBaseline />
         <Box
           sx={{
             background: darkMode
               ? "linear-gradient(135deg, #0c0a21, #26224f, #1d1d32)"
               : "linear-gradient(135deg, #e0eafc, #cfdef3)",
-            height: "100vh",
-            width: "100vw",
+            minHeight: "100vh",
+            width: "100%",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            boxSizing: "border-box",
+            overflowX: "hidden",
+            p: 2,
           }}
         >
           <CircularProgress sx={{ color: theme.palette.primary.main }} />
@@ -278,16 +295,20 @@ function Profile() {
   if (error) {
     return (
       <ThemeProvider theme={theme}>
+        <CssBaseline />
         <Box
           sx={{
             background: darkMode
               ? "linear-gradient(135deg, #0c0a21, #26224f, #1d1d32)"
               : "linear-gradient(135deg, #e0eafc, #cfdef3)",
-            height: "100vh",
-            width: "100vw",
+            minHeight: "100vh",
+            width: "100%",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            boxSizing: "border-box",
+            overflowX: "hidden",
+            p: 2,
           }}
         >
           <Typography variant="h6" color="error">
@@ -302,29 +323,36 @@ function Profile() {
   const createdEvents = profile.created_events || [];
   const registeredEvents = profile.registered_events || [];
 
+  // responsive avatar size
+  const avatarSize = isSm ? 96 : isMd ? 120 : 150;
+
   return (
     <ThemeProvider theme={theme}>
-      {/* Outer container fills the viewport with no scrolling */}
+      <CssBaseline />
+      {/* Outer container fills viewport; avoid 100vw to prevent horizontal wiggle */}
       <Box
         sx={{
-          height: "100vh",
-          width: "100vw",
-          overflow: "hidden",
+          minHeight: "100vh",
+          width: "100%",
+          overflowX: "hidden",
           background: darkMode
             ? "linear-gradient(135deg, #0c0a21, #26224f, #1d1d32)"
             : "linear-gradient(135deg, #e0eafc, #cfdef3)",
           display: "flex",
           flexDirection: "column",
+          boxSizing: "border-box",
         }}
       >
-        {/* Header: Home Button and Theme Toggle (scrolls with content) */}
+        {/* Header: Home Button and Theme Toggle (not fixed) */}
         <Box
           sx={{
             flexShrink: 0,
             display: "flex",
             justifyContent: "flex-end",
             alignItems: "center",
-            p: 1,
+            p: { xs: 1, sm: 1.5 },
+            gap: 1,
+            boxSizing: "border-box",
           }}
         >
           <Link
@@ -333,11 +361,12 @@ function Profile() {
               textDecoration: "none",
               color: darkMode ? "#64ffda" : "#2196F3",
               backgroundColor: theme.palette.background.paper,
-              padding: "8px 16px",
-              borderRadius: "4px",
-              boxShadow: "0px 2px 4px rgba(0,0,0,0.2)",
-              fontWeight: "bold",
-              marginRight: "16px",
+              padding: "8px 12px",
+              borderRadius: "6px",
+              boxShadow: "0px 2px 4px rgba(0,0,0,0.12)",
+              fontWeight: "700",
+              marginRight: "8px",
+              fontSize: isSm ? "0.8rem" : "0.95rem",
             }}
           >
             Home
@@ -347,7 +376,9 @@ function Profile() {
             sx={{
               backgroundColor: theme.palette.background.paper,
               "&:hover": { backgroundColor: "grey.600" },
+              p: 1,
             }}
+            aria-label="toggle-theme"
           >
             {darkMode ? <Brightness7 /> : <Brightness4 />}
           </IconButton>
@@ -358,35 +389,45 @@ function Profile() {
           sx={{
             flex: 1,
             overflow: "auto",
-            p: 2,
+            p: { xs: 2, sm: 3 },
+            boxSizing: "border-box",
           }}
         >
-          <Box sx={{ display: { xs: "block", md: "flex" }, gap: 4 }}>
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: { xs: "column", md: "row" },
+              gap: { xs: 3, md: 4 },
+              alignItems: "flex-start",
+            }}
+          >
             {/* Left Side: Profile Details */}
-            <Box sx={{ width: { xs: "100%", md: "30%" } }}>
+            <Box sx={{ width: { xs: "100%", md: "30%" }, boxSizing: "border-box" }}>
               <Typography
-                variant="h3"
-                sx={{ color: "text.primary", mb: 2, textAlign: "left" }}
+                variant="h5"
+                sx={{ color: "text.primary", mb: 2, textAlign: "left", fontWeight: 700 }}
               >
                 <Person sx={{ mr: 1, color: "primary.main" }} /> My Profile
               </Typography>
               <Card
                 sx={{
                   background: theme.palette.background.paper,
-                  border: `1px solid rgba(255, 255, 255, 0.3)`,
-                  boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.3)",
+                  border: `1px solid rgba(255, 255, 255, 0.12)`,
+                  boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.08)",
                   borderRadius: 2,
                   p: 2,
-                  backdropFilter: "blur(10px)",
+                  backdropFilter: "blur(6px)",
+                  boxSizing: "border-box",
                 }}
               >
                 <CardContent sx={{ display: "flex", flexDirection: "column", p: 2 }}>
                   <Box
                     sx={{
                       position: "relative",
-                      width: 150,
-                      height: 150,
+                      width: avatarSize,
+                      height: avatarSize,
                       mb: 1,
+                      alignSelf: { xs: "center", md: "flex-start" },
                       "&:hover .overlay": {
                         opacity: 1,
                         backdropFilter: "blur(4px)",
@@ -397,8 +438,8 @@ function Profile() {
                       src={profile.profile_picture || ""}
                       alt="Profile Picture"
                       sx={{
-                        width: 150,
-                        height: 150,
+                        width: avatarSize,
+                        height: avatarSize,
                         boxSizing: "border-box",
                         border: `3px solid ${theme.palette.primary.main}`,
                         cursor: "pointer",
@@ -406,7 +447,7 @@ function Profile() {
                           ? "none"
                           : generateGradientFromUsername(profile.username),
                         color: profile.profile_picture ? "inherit" : "white",
-                        fontSize: 64,
+                        fontSize: avatarSize / 2.8,
                       }}
                       onClick={() =>
                         fileInputRef.current && fileInputRef.current.click()
@@ -416,16 +457,17 @@ function Profile() {
                         profile.username &&
                         profile.username[0].toUpperCase()}
                     </Avatar>
+
                     <Box
                       className="overlay"
                       sx={{
                         position: "absolute",
                         top: 3,
                         left: 3,
-                        width: "calc(100% - 6px)",
-                        height: "calc(100% - 6px)",
+                        width: `calc(100% - 6px)`,
+                        height: `calc(100% - 6px)`,
                         borderRadius: "50%",
-                        backgroundColor: "rgba(0,0,0,0.6)",
+                        backgroundColor: "rgba(0,0,0,0.55)",
                         color: "white",
                         display: "flex",
                         alignItems: "center",
@@ -433,7 +475,7 @@ function Profile() {
                         flexDirection: "column",
                         gap: 1,
                         opacity: 0,
-                        transition: "opacity 0.5s ease-in-out, backdrop-filter 0.5s ease-in-out",
+                        transition: "opacity 0.35s ease-in-out, backdrop-filter 0.35s ease-in-out",
                       }}
                     >
                       {profile.profile_picture ? (
@@ -450,7 +492,7 @@ function Profile() {
                             }
                           >
                             <EditIcon sx={{ fontSize: 20, mr: 0.5 }} />
-                            <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+                            <Typography variant="body2" sx={{ fontWeight: "700" }}>
                               Edit
                             </Typography>
                           </Box>
@@ -464,7 +506,7 @@ function Profile() {
                             onClick={handleDeleteImage}
                           >
                             <DeleteIcon sx={{ fontSize: 20, mr: 0.5 }} />
-                            <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+                            <Typography variant="body2" sx={{ fontWeight: "700" }}>
                               Delete
                             </Typography>
                           </Box>
@@ -482,48 +524,55 @@ function Profile() {
                           }
                         >
                           <AddAPhotoIcon sx={{ fontSize: 20, mr: 0.5 }} />
-                          <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+                          <Typography variant="body2" sx={{ fontWeight: "700" }}>
                             Add Profile Picture
                           </Typography>
                         </Box>
                       )}
                     </Box>
                   </Box>
+
                   <Divider sx={{ my: 2, bgcolor: theme.palette.primary.main }} />
+
                   <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                    <Box sx={{ display: "flex", alignItems: "center" }}>
-                      <Person sx={{ mr: 1, color: theme.palette.primary.main }} />
-                      <Typography variant="body1" sx={{ color: "text.primary" }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Person sx={{ color: theme.palette.primary.main }} />
+                      <Typography variant="body2" sx={{ color: "text.primary" }}>
                         <strong>Username:</strong> {profile.username}
                       </Typography>
                     </Box>
-                    <Box sx={{ display: "flex", alignItems: "center" }}>
-                      <Info sx={{ mr: 1, color: theme.palette.primary.main }} />
-                      <Typography variant="body1" sx={{ color: "text.primary" }}>
+
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Info sx={{ color: theme.palette.primary.main }} />
+                      <Typography variant="body2" sx={{ color: "text.primary" }}>
                         <strong>Bio:</strong> {profile.bio || "No bio provided"}
                       </Typography>
                     </Box>
-                    <Box sx={{ display: "flex", alignItems: "center" }}>
-                      <LocationOn sx={{ mr: 1, color: theme.palette.primary.main }} />
-                      <Typography variant="body1" sx={{ color: "text.primary" }}>
+
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <LocationOn sx={{ color: theme.palette.primary.main }} />
+                      <Typography variant="body2" sx={{ color: "text.primary" }}>
                         <strong>Location:</strong> {profile.location || "Not specified"}
                       </Typography>
                     </Box>
-                    <Box sx={{ display: "flex", alignItems: "center" }}>
-                      <Phone sx={{ mr: 1, color: theme.palette.primary.main }} />
-                      <Typography variant="body1" sx={{ color: "text.primary" }}>
+
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Phone sx={{ color: theme.palette.primary.main }} />
+                      <Typography variant="body2" sx={{ color: "text.primary" }}>
                         <strong>Phone:</strong> {profile.phone_number || "N/A"}
                       </Typography>
                     </Box>
-                    <Box sx={{ display: "flex", alignItems: "center" }}>
-                      <EmojiEvents sx={{ mr: 1, color: theme.palette.primary.main }} />
-                      <Typography variant="body1" sx={{ color: "text.primary" }}>
+
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <EmojiEvents sx={{ color: theme.palette.primary.main }} />
+                      <Typography variant="body2" sx={{ color: "text.primary" }}>
                         <strong>Interests:</strong> {profile.interests || "No interests added"}
                       </Typography>
                     </Box>
                   </Box>
                 </CardContent>
               </Card>
+
               <input
                 type="file"
                 ref={fileInputRef}
@@ -534,17 +583,22 @@ function Profile() {
             </Box>
 
             {/* Right Side: Created Events Table */}
-            <Box sx={{ width: { xs: "100%", md: "70%" } }}>
-              <Typography variant="h4" sx={{ color: "text.primary", mb: 2, textAlign: "center" }}>
+            <Box sx={{ width: { xs: "100%", md: "70%" }, boxSizing: "border-box" }}>
+              <Typography
+                variant="h5"
+                sx={{ color: "text.primary", mb: 2, textAlign: "center", fontWeight: 700 }}
+              >
                 Created Events
               </Typography>
+
               <TableContainer
                 component={Paper}
                 sx={{
                   mb: 4,
-                  maxHeight: 400,
+                  maxHeight: { xs: 320, sm: 380, md: 420 },
                   width: "100%",
                   overflow: "auto",
+                  boxSizing: "border-box",
                 }}
               >
                 <Table stickyHeader>
@@ -578,15 +632,20 @@ function Profile() {
 
           {/* Registered Events Section */}
           <Box sx={{ mt: 4 }}>
-            <Typography variant="h4" sx={{ color: "text.primary", mb: 2, textAlign: "center" }}>
+            <Typography
+              variant="h5"
+              sx={{ color: "text.primary", mb: 2, textAlign: "center", fontWeight: 700 }}
+            >
               Registered Events
             </Typography>
+
             <TableContainer
               component={Paper}
               sx={{
-                maxHeight: 400,
+                maxHeight: { xs: 320, sm: 380, md: 420 },
                 width: "100%",
                 overflow: "auto",
+                boxSizing: "border-box",
               }}
             >
               <Table stickyHeader>
@@ -615,7 +674,9 @@ function Profile() {
                       <TableCell align="center">{event.organizer}</TableCell>
                       <TableCell align="center">{event.capacity}</TableCell>
                       <TableCell align="center">{event.event_code}</TableCell>
-                      <TableCell align="center">{event.description}</TableCell>
+                      <TableCell align="center" sx={{ maxWidth: 240, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {event.description}
+                      </TableCell>
                       <TableCell align="center">
                         <IconButton onClick={() => handleUnregisterEvent(event.id)}>
                           <CancelIcon />

@@ -26,6 +26,10 @@ import {
   LinearProgress,
   Fade,
   Slide,
+  useMediaQuery,
+  CssBaseline,
+  Menu,
+  Tooltip,
 } from "@mui/material";
 
 import {
@@ -46,9 +50,13 @@ import {
   QrCode,
   Brightness4,
   Brightness7,
+  MoreVert,
 } from "@mui/icons-material";
 
-import { createTheme, ThemeProvider } from "@mui/material/styles";
+import { createTheme, ThemeProvider, useTheme } from "@mui/material/styles";
+
+// Use Vite env var for API base URL; keep as provided
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 // Define a Slide transition component for the Snackbar
 function SlideTransition(props) {
@@ -58,10 +66,13 @@ function SlideTransition(props) {
 // ---------------------- CAPACITY INDICATOR ---------------------- //
 function CapacityIndicator({ eventId, capacity }) {
   const [registrationCount, setRegistrationCount] = useState(0);
+  const theme = useTheme();
+  const isXs = useMediaQuery(theme.breakpoints.down("sm"));
 
   useEffect(() => {
+    if (!API_BASE) return;
     axios
-      .get(`http://127.0.0.1:8000/api/events/${eventId}/registration_count/`)
+      .get(`${API_BASE}/events/${eventId}/registration_count/`)
       .then((response) => {
         setRegistrationCount(response.data.registration_count);
       })
@@ -75,7 +86,7 @@ function CapacityIndicator({ eventId, capacity }) {
 
   return (
     <Box sx={{ mt: 2 }}>
-      <Typography variant="body2" sx={{ color: "text.secondary" }}>
+      <Typography variant="body2" sx={{ color: "text.secondary", fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
         Capacity: {capacity} | Slots Remaining: {slotsRemaining}
       </Typography>
       <Box sx={{ position: "relative", mt: 0.5 }}>
@@ -83,12 +94,12 @@ function CapacityIndicator({ eventId, capacity }) {
           variant="determinate"
           value={percentage}
           sx={{
-            height: 20,
+            height: isXs ? 10 : 20,
             borderRadius: 1,
             backgroundColor: "#ddd",
             "& .MuiLinearProgress-bar": {
               backgroundColor:
-                percentage < 50 ? "#4caf50" : percentage < 80 ? "#ff9800" : "#f44336",
+                percentage < 50 ? "success.main" : percentage < 80 ? "warning.main" : "error.main",
               transition: "background-color 0.5s ease",
             },
           }}
@@ -101,8 +112,9 @@ function CapacityIndicator({ eventId, capacity }) {
             left: "50%",
             transform: "translate(-50%, -50%)",
             fontWeight: "bold",
-            color: "black",
-            textShadow: "0px 0px 4px rgba(0,0,0,0.7)",
+            color: "text.primary",
+            fontSize: isXs ? "0.7rem" : "0.85rem",
+            textShadow: "0px 0px 3px rgba(0,0,0,0.6)",
           }}
         >
           {`${Math.round(percentage)}%`}
@@ -130,17 +142,19 @@ function LoginPrompt({ open, onClose, onLogin }) {
         <Box
           sx={{
             position: "absolute",
-            top: "10%",
+            top: { xs: "8%", sm: "10%" },
             left: "50%",
             transform: "translate(-50%, 0)",
-            background: "rgba(0, 0, 0, 0.8)",
+            background: "rgba(0, 0, 0, 0.85)",
             borderRadius: 2,
-            p: 4,
+            p: { xs: 2, sm: 4 },
             textAlign: "center",
             color: "white",
+            width: { xs: "92%", sm: "60%", md: "40%" },
+            boxSizing: "border-box",
           }}
         >
-          <Typography variant="h5" sx={{ mb: 2 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>
             You need to be logged in to use this feature.
           </Typography>
           <Button
@@ -162,6 +176,9 @@ function LoginPrompt({ open, onClose, onLogin }) {
 
 // ---------------------- FUTURISTIC EVENT CARD ---------------------- //
 function EventCard({ event, onRegister, onViewDetails }) {
+  const theme = useTheme();
+  const isXs = useMediaQuery(theme.breakpoints.down("sm"));
+
   return (
     <Grid item xs={12} sm={6} md={4}>
       <Card
@@ -176,13 +193,15 @@ function EventCard({ event, onRegister, onViewDetails }) {
             transform: "scale(1.03)",
             boxShadow: "0px 6px 16px rgba(0, 0, 0, 0.5)",
           },
-          height: 350,
+          height: { xs: "auto", sm: 350 },
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
+          p: { xs: 1, sm: 0 },
+          boxSizing: "border-box",
         }}
       >
-        <CardContent sx={{ p: 3, color: "text.primary" }}>
+        <CardContent sx={{ p: { xs: 2, sm: 3 }, color: "text.primary" }}>
           <Typography
             variant="h5"
             sx={{
@@ -190,44 +209,50 @@ function EventCard({ event, onRegister, onViewDetails }) {
               textAlign: "center",
               color: "primary.main",
               mb: 1,
+              fontSize: { xs: "1rem", sm: "1.25rem", md: "1.5rem" },
             }}
           >
             {event.title}
           </Typography>
-          <Divider
-            sx={{
-              bgcolor: "primary.main",
-              mb: 2,
-              width: "60%",
-              mx: "auto",
-            }}
-          />
-          <Box sx={{ mb: 1, height: 140, overflow: "hidden" }}>
-            <Typography variant="body2" sx={{ display: "flex", alignItems: "center", mb: 0.5 }}>
-              <LocationOn sx={{ mr: 1, color: "success.main" }} /> {event.location}
+          <Divider sx={{ bgcolor: "primary.main", mb: 2, width: "60%", mx: "auto" }} />
+          <Box sx={{ mb: 1, height: { xs: "auto", sm: 140 }, overflow: "hidden" }}>
+            <Typography variant="body2" sx={{ display: "flex", alignItems: "center", mb: 0.5, fontSize: { xs: "0.78rem", sm: "0.9rem" } }}>
+              <LocationOn sx={{ mr: 1, color: "success.main", fontSize: { xs: 18, sm: 20 } }} /> {event.location}
             </Typography>
-            <Typography variant="body2" sx={{ display: "flex", alignItems: "center", mb: 0.5 }}>
-              <AccessTime sx={{ mr: 1, color: "warning.main" }} /> {event.date} | {event.time}
+            <Typography variant="body2" sx={{ display: "flex", alignItems: "center", mb: 0.5, fontSize: { xs: "0.78rem", sm: "0.9rem" } }}>
+              <AccessTime sx={{ mr: 1, color: "warning.main", fontSize: { xs: 18, sm: 20 } }} /> {event.date} | {event.time}
             </Typography>
-            <Typography variant="body2" sx={{ display: "flex", alignItems: "center", mb: 0.5 }}>
-              <Person sx={{ mr: 1, color: "secondary.main" }} /> {event.organizer}
+            <Typography variant="body2" sx={{ display: "flex", alignItems: "center", mb: 0.5, fontSize: { xs: "0.78rem", sm: "0.9rem" } }}>
+              <Person sx={{ mr: 1, color: "secondary.main", fontSize: { xs: 18, sm: 20 } }} /> {event.organizer}
             </Typography>
-            <Typography variant="body2" sx={{ display: "flex", alignItems: "center", mb: 0.5 }}>
-              <Event sx={{ mr: 1, color: "primary.main" }} /> {event.event_type}{" "}
-              <Info sx={{ ml: 1, mr: 1, color: "error.main" }} /> Capacity: {event.capacity}
+            <Typography variant="body2" sx={{ display: "flex", alignItems: "center", mb: 0.5, fontSize: { xs: "0.78rem", sm: "0.9rem" } }}>
+              <Event sx={{ mr: 1, color: "primary.main", fontSize: { xs: 18, sm: 20 } }} /> {event.event_type}{" "}
+              <Info sx={{ ml: 1, mr: 1, color: "error.main", fontSize: { xs: 16, sm: 18 } }} /> Capacity: {event.capacity}
             </Typography>
-            <Typography variant="body2" sx={{ display: "flex", alignItems: "center", mb: 0.5 }}>
-              <QrCode sx={{ mr: 1, color: "info.main" }} /> Code: {event.event_code}
+            <Typography variant="body2" sx={{ display: "flex", alignItems: "center", mb: 0.5, fontSize: { xs: "0.78rem", sm: "0.9rem" } }}>
+              <QrCode sx={{ mr: 1, color: "info.main", fontSize: { xs: 18, sm: 20 } }} /> Code: {event.event_code}
             </Typography>
-            <Typography variant="body2" sx={{ fontSize: "0.85rem", mt: 1 }}>
-              {event.description.length > 100
-                ? event.description.substring(0, 100) + "..."
+            <Typography variant="body2" sx={{ fontSize: { xs: "0.75rem", sm: "0.85rem" }, mt: 1 }}>
+              {event.description.length > (isXs ? 80 : 100)
+                ? event.description.substring(0, isXs ? 80 : 100) + "..."
                 : event.description}
             </Typography>
             <CapacityIndicator eventId={event.id} capacity={event.capacity} />
           </Box>
         </CardContent>
-        <Box sx={{ display: "flex", justifyContent: "space-around", p: 2, pt: 0 }}>
+
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-around",
+            p: 2,
+            pt: 0,
+            gap: 1,
+            flexDirection: { xs: "column", sm: "row" },
+            alignItems: "center",
+            boxSizing: "border-box",
+          }}
+        >
           <Button
             variant="contained"
             onClick={() => onRegister(event)}
@@ -237,6 +262,7 @@ function EventCard({ event, onRegister, onViewDetails }) {
               color: "#fff",
               textTransform: "none",
               "&:hover": { backgroundColor: "primary.dark" },
+              width: { xs: "100%", sm: "auto" },
             }}
           >
             Get QR
@@ -249,7 +275,8 @@ function EventCard({ event, onRegister, onViewDetails }) {
               borderColor: "primary.main",
               color: "primary.main",
               textTransform: "none",
-              "&:hover": { backgroundColor: "rgba(33, 150, 243, 0.1)" },
+              "&:hover": { backgroundColor: "rgba(33, 150, 243, 0.06)" },
+              width: { xs: "100%", sm: "auto" },
             }}
           >
             View Details
@@ -271,6 +298,9 @@ function RegistrationModal({
   isSubmitting,
   feedbackMessage,
 }) {
+  const theme = useTheme();
+  const isXs = useMediaQuery(theme.breakpoints.down("sm"));
+
   return (
     <Modal
       open={open}
@@ -288,17 +318,20 @@ function RegistrationModal({
           top: "50%",
           left: "50%",
           transform: "translate(-50%, -50%)",
-          background: "rgba(0, 0, 0, 0.4)",
-          border: "1px solid rgba(255, 255, 255, 0.3)",
+          background: "rgba(0, 0, 0, 0.45)",
+          border: "1px solid rgba(255, 255, 255, 0.18)",
           boxShadow: 24,
-          p: 4,
-          width: { xs: "90%", sm: "60%", md: "40%" },
+          p: { xs: 2, sm: 4 },
+          width: { xs: "95%", sm: "70%", md: "55%", lg: "40%" },
           color: "white",
+          maxHeight: "90vh",
+          overflowY: "auto",
+          boxSizing: "border-box",
         }}
       >
-        <Typography variant="h5" sx={{ mb: 3, fontWeight: "bold", display: "flex", alignItems: "center" }}>
+        <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold", display: "flex", alignItems: "center", fontSize: { xs: "1rem", sm: "1.25rem" } }}>
           <HowToReg sx={{ mr: 1 }} /> Register for{" "}
-          <span style={{ color: "white", marginLeft: 4 }}>{event?.title}</span>
+          <span style={{ color: "white", marginLeft: 8 }}>{event?.title}</span>
         </Typography>
 
         <TextField
@@ -308,7 +341,7 @@ function RegistrationModal({
           value={registrationData.full_name}
           onChange={onChange}
           variant="filled"
-          sx={{ mb: 2, backgroundColor: "rgba(255,255,255,0.1)" }}
+          sx={{ mb: 2, backgroundColor: "rgba(255,255,255,0.06)" }}
           InputProps={{
             style: { color: "white" },
             startAdornment: (
@@ -327,7 +360,7 @@ function RegistrationModal({
           value={registrationData.email}
           onChange={onChange}
           variant="filled"
-          sx={{ mb: 2, backgroundColor: "rgba(255,255,255,0.1)" }}
+          sx={{ mb: 2, backgroundColor: "rgba(255,255,255,0.06)" }}
           InputProps={{
             style: { color: "white" },
             startAdornment: (
@@ -346,7 +379,7 @@ function RegistrationModal({
           value={registrationData.phone_number}
           onChange={onChange}
           variant="filled"
-          sx={{ mb: 2, backgroundColor: "rgba(255,255,255,0.1)" }}
+          sx={{ mb: 2, backgroundColor: "rgba(255,255,255,0.06)" }}
           InputProps={{
             style: { color: "white" },
             startAdornment: (
@@ -382,7 +415,7 @@ function RegistrationModal({
           value={registrationData.city}
           onChange={onChange}
           variant="filled"
-          sx={{ mb: 2, backgroundColor: "rgba(255,255,255,0.1)" }}
+          sx={{ mb: 2, backgroundColor: "rgba(255,255,255,0.06)" }}
           InputProps={{
             style: { color: "white" },
             startAdornment: (
@@ -418,7 +451,7 @@ function RegistrationModal({
           value={registrationData.emergency_contact}
           onChange={onChange}
           variant="filled"
-          sx={{ mb: 2, backgroundColor: "rgba(255,255,255,0.1)" }}
+          sx={{ mb: 2, backgroundColor: "rgba(255,255,255,0.06)" }}
           InputProps={{
             style: { color: "white" },
             startAdornment: (
@@ -461,6 +494,8 @@ function RegistrationModal({
 
 // ---------------------- EVENT DETAILS MODAL ---------------------- //
 function EventDetailsModal({ open, onClose, event }) {
+  const theme = useTheme();
+
   if (!event) return null;
   return (
     <Modal
@@ -479,45 +514,46 @@ function EventDetailsModal({ open, onClose, event }) {
           top: "50%",
           left: "50%",
           transform: "translate(-50%, -50%)",
-          background: "rgba(0, 0, 0, 0.4)",
-          border: "1px solid rgba(255, 255, 255, 0.3)",
+          background: "rgba(0, 0, 0, 0.45)",
+          border: "1px solid rgba(255, 255, 255, 0.18)",
           boxShadow: 24,
-          p: 4,
-          width: { xs: "90%", sm: "60%", md: "40%" },
-          maxHeight: "80vh",
+          p: { xs: 2, sm: 4 },
+          width: { xs: "95%", sm: "75%", md: "60%", lg: "50%" },
+          maxHeight: "85vh",
           overflowY: "auto",
           color: "white",
+          boxSizing: "border-box",
         }}
       >
         <Typography
-          variant="h5"
-          sx={{ mb: 2, fontWeight: "bold", display: "flex", alignItems: "center" }}
+          variant="h6"
+          sx={{ mb: 2, fontWeight: "bold", display: "flex", alignItems: "center", fontSize: { xs: "1rem", sm: "1.25rem" } }}
         >
           <Info sx={{ mr: 1 }} /> {event.title}
         </Typography>
         <Divider sx={{ bgcolor: "primary.main", mb: 2 }} />
         <Box sx={{ mb: 1 }}>
-          <Typography variant="body1" sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+          <Typography variant="body1" sx={{ display: "flex", alignItems: "center", mb: 1, fontSize: { xs: "0.85rem", sm: "0.95rem" } }}>
             <LocationOn sx={{ mr: 1, color: "success.main" }} />
             <strong>Location:</strong>&nbsp; {event.location}
           </Typography>
-          <Typography variant="body1" sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+          <Typography variant="body1" sx={{ display: "flex", alignItems: "center", mb: 1, fontSize: { xs: "0.85rem", sm: "0.95rem" } }}>
             <AccessTime sx={{ mr: 1, color: "warning.main" }} />
             <strong>Date & Time:</strong>&nbsp; {event.date} | {event.time}
           </Typography>
-          <Typography variant="body1" sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+          <Typography variant="body1" sx={{ display: "flex", alignItems: "center", mb: 1, fontSize: { xs: "0.85rem", sm: "0.95rem" } }}>
             <Person sx={{ mr: 1, color: "secondary.main" }} />
             <strong>Organizer:</strong>&nbsp; {event.organizer}
           </Typography>
-          <Typography variant="body1" sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+          <Typography variant="body1" sx={{ display: "flex", alignItems: "center", mb: 1, fontSize: { xs: "0.85rem", sm: "0.95rem" } }}>
             <Event sx={{ mr: 1, color: "primary.main" }} />
             <strong>Type:</strong>&nbsp; {event.event_type}
           </Typography>
-          <Typography variant="body1" sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+          <Typography variant="body1" sx={{ display: "flex", alignItems: "center", mb: 1, fontSize: { xs: "0.85rem", sm: "0.95rem" } }}>
             <QrCode sx={{ mr: 1, color: "info.main" }} />
             <strong>Code:</strong>&nbsp; {event.event_code}
           </Typography>
-          <Typography variant="body1" sx={{ mt: 2 }}>
+          <Typography variant="body1" sx={{ mt: 2, fontSize: { xs: "0.85rem", sm: "0.95rem" } }}>
             {event.description}
           </Typography>
           <CapacityIndicator eventId={event.id} capacity={event.capacity} />
@@ -532,6 +568,7 @@ function EventDetailsModal({ open, onClose, event }) {
             mt: 2,
             textTransform: "none",
             "&:hover": { backgroundColor: "primary.dark" },
+            width: { xs: "100%", sm: "auto" },
           }}
         >
           Close
@@ -546,7 +583,7 @@ function Home() {
   const [darkMode, setDarkMode] = useState(true);
   const [registrationInProgress, setRegistrationInProgress] = useState(false);
 
-  const theme = createTheme({
+  const baseTheme = createTheme({
     palette: {
       mode: darkMode ? "dark" : "light",
       primary: { main: darkMode ? "#64ffda" : "#2196F3" },
@@ -558,6 +595,10 @@ function Home() {
       h3: { fontWeight: "bold" },
     },
   });
+
+  const theme = baseTheme;
+  const muiTheme = useTheme();
+  const isXs = useMediaQuery(muiTheme.breakpoints.down("sm"));
 
   // State variables for events, modals, registration, etc.
   const [events, setEvents] = useState([]);
@@ -591,6 +632,10 @@ function Home() {
   // New state for the login prompt modal
   const [loginPromptOpen, setLoginPromptOpen] = useState(false);
 
+  // Menu anchor for mobile menu
+  const [menuAnchorEl, setMenuAnchorEl] = useState(null);
+  const menuOpen = Boolean(menuAnchorEl);
+
   const navigate = useNavigate();
   const accessToken = localStorage.getItem("access");
 
@@ -598,8 +643,14 @@ function Home() {
   useEffect(() => {
     setLoadingEvents(true);
     const config = accessToken ? { headers: { Authorization: `Bearer ${accessToken}` } } : {};
+    if (!API_BASE) {
+      console.error("VITE_API_BASE_URL is not set.");
+      setEventsError("API base URL not configured.");
+      setLoadingEvents(false);
+      return;
+    }
     axios
-      .get("http://127.0.0.1:8000/api/events/", config)
+      .get(`${API_BASE}/events/`, config)
       .then((response) => {
         setEvents(response.data);
         setLoadingEvents(false);
@@ -675,7 +726,7 @@ function Home() {
     setFeedbackMessage("Submitting your registration... Please wait.");
     try {
       await axios.post(
-        `http://127.0.0.1:8000/api/events/${selectedEvent.id}/register/`,
+        `${API_BASE}/events/${selectedEvent.id}/register/`,
         registrationData,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
@@ -713,8 +764,29 @@ function Home() {
     }
   };
 
+  // Mobile menu handlers
+  const handleMenuOpen = (e) => setMenuAnchorEl(e.currentTarget);
+  const handleMenuClose = () => setMenuAnchorEl(null);
+  const onMenuAddEvent = () => {
+    handleMenuClose();
+    handleAddEventClick();
+  };
+  const onMenuProfile = () => {
+    handleMenuClose();
+    if (!accessToken) {
+      setLoginPromptOpen(true);
+      return;
+    }
+    navigate("/profile");
+  };
+  const onMenuLogout = () => {
+    handleMenuClose();
+    handleLogout();
+  };
+
   return (
     <ThemeProvider theme={theme}>
+      <CssBaseline />
       {/* Global Progress Bar for Registration */}
       {registrationInProgress && (
         <LinearProgress
@@ -732,13 +804,15 @@ function Home() {
       <IconButton
         sx={{
           position: "fixed",
-          top: 16,
-          right: 16,
+          top: { xs: 8, sm: 16 },
+          right: { xs: 8, sm: 16 },
           zIndex: 1300,
           backgroundColor: "background.paper",
           "&:hover": { backgroundColor: "grey.600" },
+          p: { xs: 0.5, sm: 1 },
         }}
         onClick={() => setDarkMode(!darkMode)}
+        aria-label="toggle-theme"
       >
         {darkMode ? <Brightness7 /> : <Brightness4 />}
       </IconButton>
@@ -759,68 +833,146 @@ function Home() {
             ? "linear-gradient(135deg, #0c0a21, #26224f, #1d1d32)"
             : "linear-gradient(135deg, #e0eafc, #cfdef3)",
           minHeight: "100vh",
-          width: "100vw",
-          p: 0,
+          width: "100%",
+          p: { xs: 1, sm: 2, md: 4 },
           m: 0,
+          overflowX: "hidden",
+          boxSizing: "border-box",
         }}
       >
-        <Container maxWidth="lg" sx={{ pt: 4, pb: 4 }}>
+        <Container maxWidth="lg" sx={{ pt: { xs: 2, sm: 4 }, pb: { xs: 2, sm: 4 } }}>
           {/* Header */}
           <Box
             sx={{
               display: "flex",
+              flexDirection: { xs: "column", sm: "row" },
               justifyContent: "space-between",
-              alignItems: "center",
+              alignItems: { xs: "flex-start", sm: "center" },
+              gap: { xs: 1.5, sm: 0 },
               mb: 4,
             }}
           >
-            <Typography variant="h3" sx={{ color: "text.primary" }}>
-              <RocketLaunch sx={{ mr: 1, color: "primary.main" }} /> Upcoming Events
+            <Typography
+              variant="h3"
+              sx={{
+                color: "text.primary",
+                display: "flex",
+                alignItems: "center",
+                fontSize: { xs: "1.1rem", sm: "1.6rem", md: "2rem" },
+                fontWeight: 700,
+              }}
+            >
+              <RocketLaunch sx={{ mr: 1, color: "primary.main", fontSize: { xs: 20, sm: 28 } }} /> Upcoming Events
             </Typography>
-            <Box>
-              <Button
-                variant="contained"
-                onClick={handleAddEventClick}
-                startIcon={<AddCircleOutline />}
-                sx={{
-                  backgroundColor: "primary.main",
-                  color: "#fff",
-                  mr: 2,
-                  textTransform: "none",
-                  "&:hover": { backgroundColor: "primary.dark" },
-                }}
-              >
-                Add Event
-              </Button>
-              {accessToken && (
+
+            {/* Right-side actions: show compact menu on xs, full buttons on sm+ */}
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                width: { xs: "100%", sm: "auto" },
+                justifyContent: { xs: "flex-end", sm: "flex-start" },
+              }}
+            >
+              {/* Mobile: single More menu */}
+              {isXs ? (
+                <>
+                  <Tooltip title="Actions">
+                    <IconButton
+                      aria-label="open actions"
+                      aria-controls={menuOpen ? "actions-menu" : undefined}
+                      aria-haspopup="true"
+                      aria-expanded={menuOpen ? "true" : undefined}
+                      onClick={handleMenuOpen}
+                      sx={{
+                        backgroundColor: "background.paper",
+                        "&:hover": { backgroundColor: "grey.600" },
+                      }}
+                    >
+                      <MoreVert />
+                    </IconButton>
+                  </Tooltip>
+
+                  <Menu
+                    id="actions-menu"
+                    anchorEl={menuAnchorEl}
+                    open={menuOpen}
+                    onClose={handleMenuClose}
+                    transformOrigin={{ horizontal: "right", vertical: "top" }}
+                    anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+                    PaperProps={{
+                      sx: {
+                        mt: 1,
+                        minWidth: 180,
+                        bgcolor: theme.palette.background.paper,
+                        border: `1px solid rgba(255,255,255,0.06)`,
+                      },
+                    }}
+                  >
+                    <MenuItem onClick={onMenuAddEvent} sx={{ gap: 1 }}>
+                      <AddCircleOutline fontSize="small" /> Add Event
+                    </MenuItem>
+                    <MenuItem onClick={onMenuProfile} sx={{ gap: 1 }}>
+                      <Person fontSize="small" /> Profile
+                    </MenuItem>
+                    <MenuItem onClick={onMenuLogout} sx={{ gap: 1 }}>
+                      <ExitToApp fontSize="small" /> Logout
+                    </MenuItem>
+                  </Menu>
+                </>
+              ) : (
+                // Desktop / Tablet: full buttons
                 <>
                   <Button
                     variant="contained"
-                    onClick={() => navigate("/profile")}
-                    startIcon={<Person />}
+                    onClick={handleAddEventClick}
+                    startIcon={<AddCircleOutline />}
                     sx={{
                       backgroundColor: "primary.main",
                       color: "#fff",
                       mr: 2,
                       textTransform: "none",
                       "&:hover": { backgroundColor: "primary.dark" },
+                      minWidth: 120,
                     }}
                   >
-                    Profile
+                    Add Event
                   </Button>
-                  <Button
-                    variant="contained"
-                    onClick={handleLogout}
-                    startIcon={<ExitToApp />}
-                    sx={{
-                      backgroundColor: "secondary.main",
-                      color: "#fff",
-                      textTransform: "none",
-                      "&:hover": { backgroundColor: "secondary.dark" },
-                    }}
-                  >
-                    Logout
-                  </Button>
+
+                  {accessToken && (
+                    <>
+                      <Button
+                        variant="contained"
+                        onClick={() => navigate("/profile")}
+                        startIcon={<Person />}
+                        sx={{
+                          backgroundColor: "primary.main",
+                          color: "#fff",
+                          mr: 2,
+                          textTransform: "none",
+                          "&:hover": { backgroundColor: "primary.dark" },
+                          minWidth: 100,
+                        }}
+                      >
+                        Profile
+                      </Button>
+                      <Button
+                        variant="contained"
+                        onClick={handleLogout}
+                        startIcon={<ExitToApp />}
+                        sx={{
+                          backgroundColor: "secondary.main",
+                          color: "#fff",
+                          textTransform: "none",
+                          "&:hover": { backgroundColor: "secondary.dark" },
+                          minWidth: 100,
+                        }}
+                      >
+                        Logout
+                      </Button>
+                    </>
+                  )}
                 </>
               )}
             </Box>
@@ -836,7 +988,7 @@ function Home() {
               {eventsError}
             </Typography>
           ) : (
-            <Grid container spacing={4}>
+            <Grid container spacing={{ xs: 2, sm: 4 }}>
               {events.length > 0 ? (
                 events.map((event) => (
                   <EventCard
