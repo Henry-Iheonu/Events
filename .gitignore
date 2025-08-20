@@ -1,0 +1,45 @@
+# -----------------
+# Node / React stuff
+# -----------------
+node_modules/
+dist/
+build/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local environment
+.env
+.env.*.local
+
+# Editor / OS junk
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# -----------------
+# Python / Django stuff
+# -----------------
+__pycache__/
+*.py[cod]
+*.sqlite3
+*.db
+db.sqlite3
+*.pot
+*.pyc
+
+# Virtual env
+venv/
+env/
+ENV/
+*.egg-info/
+.eggs/
+
+# Django static/media
+staticfiles/
+media/
+static/
