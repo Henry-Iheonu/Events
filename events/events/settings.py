@@ -1,4 +1,3 @@
-# settings.py
 import os
 from pathlib import Path
 from datetime import timedelta
@@ -137,10 +136,14 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# CORS
-CORS_ALLOW_ALL_ORIGINS = os.getenv("CORS_ALLOW_ALL_ORIGINS", "True").lower() in ("true", "1", "t")
+# ---------------- CORS ----------------
+CORS_ALLOW_ALL_ORIGINS = os.getenv("CORS_ALLOW_ALL_ORIGINS", "False").lower() in ("true", "1", "t")
 
-# Email (left to env)
+if not CORS_ALLOW_ALL_ORIGINS:
+    _raw_cors = os.getenv("CORS_ALLOWED_ORIGINS", "")
+    CORS_ALLOWED_ORIGINS = [h.strip() for h in _raw_cors.split(",") if h.strip()]
+
+# ---------------- Email ----------------
 EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
 EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
 EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
@@ -154,3 +157,6 @@ if DEBUG:
     from pprint import pprint
     print("DEBUG is ON. Current DATABASES['default']:")
     pprint(DATABASES["default"])
+    print("Allowed Hosts:", ALLOWED_HOSTS)
+    if not CORS_ALLOW_ALL_ORIGINS:
+        print("CORS Allowed Origins:", CORS_ALLOWED_ORIGINS)
