@@ -21,6 +21,7 @@ import {
   CssBaseline,
   useMediaQuery,
   useTheme,
+  Tooltip,
 } from "@mui/material";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import {
@@ -32,14 +33,14 @@ import {
   Info,
   EmojiEvents,
 } from "@mui/icons-material";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddAPhotoIcon from "@mui/icons-material/AddAPhoto";
 import CancelIcon from "@mui/icons-material/Cancel";
 
 // Use API base from Vite env; fallback to Render hosted URL if missing
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // ---------------------- CreatedEventRow Component ---------------------- //
 function CreatedEventRow({ event, onDelete }) {
@@ -133,6 +134,7 @@ function Profile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [darkMode, setDarkMode] = useState(true);
+  const [localImage, setLocalImage] = useState(null); // base64 dataURL saved in localStorage
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
@@ -179,6 +181,21 @@ function Profile() {
     },
   });
 
+  // Helper: build absolute or fallback URL
+  const getImageUrl = (url) => {
+    if (!url) return "";
+    try {
+      new URL(url);
+      return url; // absolute already
+    } catch {
+      // relative - prepend API base
+      return `${API_BASE_URL}${url.startsWith("/") ? "" : "/"}${url}`;
+    }
+  };
+
+  // LocalStorage helpers (per-username key)
+  const localKeyFor = (username) => `local_profile_${username || "unknown"}`;
+
   // Fetch profile with current token
   const fetchProfile = async () => {
     const token = localStorage.getItem("access");
@@ -191,6 +208,15 @@ function Profile() {
         headers: { Authorization: `Bearer ${token}` },
       });
       setProfile(response.data);
+
+      // Try to load localStorage image for this user if present
+      const key = localKeyFor(response.data?.username);
+      const stored = localStorage.getItem(key);
+      if (stored) {
+        setLocalImage(stored);
+      } else {
+        setLocalImage(null);
+      }
     } catch (err) {
       console.error(err);
       setError("Failed to fetch profile.");
@@ -207,21 +233,35 @@ function Profile() {
   const handleImageChange = async (event) => {
     const file = event.target.files[0];
     if (file) {
+      // First: convert to base64 and store in localStorage (so we have local copy)
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const dataUrl = e.target.result;
+        try {
+          const username = profile?.username || "unknown";
+          const key = localKeyFor(username);
+          localStorage.setItem(key, dataUrl);
+          setLocalImage(dataUrl);
+        } catch (err) {
+          // localStorage might be full — still continue with upload
+          console.warn("Could not save image to localStorage:", err);
+        }
+      };
+      reader.readAsDataURL(file);
+
+      // Then: upload to server as before
       const formData = new FormData();
       formData.append("profile_picture", file);
       try {
         const token = localStorage.getItem("access");
-        const response = await axios.patch(
-          `${API_BASE_URL}/profile/`,
-          formData,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data",
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const response = await axios.patch(`${API_BASE_URL}/profile/`, formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${token}`,
+          },
+        });
         setProfile(response.data);
+        // if server returned image url, prefer server; but we keep localImage as a fallback
       } catch (error) {
         console.error("Error uploading image:", error);
       }
@@ -237,6 +277,12 @@ function Profile() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setProfile(response.data);
+
+      // remove localStorage copy as well
+      const username = profile?.username || "unknown";
+      const key = localKeyFor(username);
+      localStorage.removeItem(key);
+      setLocalImage(null);
     } catch (error) {
       console.error("Error deleting image:", error);
     }
@@ -257,10 +303,9 @@ function Profile() {
   const handleUnregisterEvent = async (eventId) => {
     const token = localStorage.getItem("access");
     try {
-      await axios.delete(
-        `${API_BASE_URL}/events/${eventId}/register/`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await axios.delete(`${API_BASE_URL}/events/${eventId}/register/`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       fetchProfile();
     } catch (error) {
       console.error("Error unregistering from event:", error);
@@ -325,6 +370,15 @@ function Profile() {
 
   // responsive avatar size
   const avatarSize = isSm ? 96 : isMd ? 120 : 150;
+
+  // Decide which avatar source to use:
+  // prefer server image, fallback to localImage (base64) if present
+  const avatarSrc = profile?.profile_picture
+    ? getImageUrl(profile.profile_picture)
+    : localImage || "";
+
+  // Show info icon when the avatar is coming from localStorage (no server image)
+  const showingLocal = !!localImage && !profile?.profile_picture;
 
   return (
     <ThemeProvider theme={theme}>
@@ -435,7 +489,7 @@ function Profile() {
                     }}
                   >
                     <Avatar
-                      src={profile.profile_picture || ""}
+                      src={avatarSrc || ""}
                       alt="Profile Picture"
                       sx={{
                         width: avatarSize,
@@ -443,20 +497,39 @@ function Profile() {
                         boxSizing: "border-box",
                         border: `3px solid ${theme.palette.primary.main}`,
                         cursor: "pointer",
-                        background: profile.profile_picture
+                        background: avatarSrc
                           ? "none"
-                          : generateGradientFromUsername(profile.username),
-                        color: profile.profile_picture ? "inherit" : "white",
+                          : generateGradientFromUsername(profile?.username),
+                        color: avatarSrc ? "inherit" : "white",
                         fontSize: avatarSize / 2.8,
                       }}
-                      onClick={() =>
-                        fileInputRef.current && fileInputRef.current.click()
-                      }
+                      onClick={() => fileInputRef.current && fileInputRef.current.click()}
                     >
-                      {!profile.profile_picture &&
-                        profile.username &&
-                        profile.username[0].toUpperCase()}
+                      {!avatarSrc && profile?.username && profile.username[0].toUpperCase()}
                     </Avatar>
+
+                    {/* Info icon shown when image is from localStorage */}
+                    {showingLocal && (
+                      <Box
+                        sx={{
+                          position: "absolute",
+                          bottom: -6,
+                          right: -6,
+                        }}
+                      >
+                        <Tooltip title="Image stored in browser localStorage">
+                          <IconButton
+                            size="small"
+                            sx={{
+                              bgcolor: theme.palette.background.paper,
+                              border: `1px solid rgba(0,0,0,0.08)`,
+                            }}
+                          >
+                            <InfoOutlinedIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    )}
 
                     <Box
                       className="overlay"
@@ -478,7 +551,7 @@ function Profile() {
                         transition: "opacity 0.35s ease-in-out, backdrop-filter 0.35s ease-in-out",
                       }}
                     >
-                      {profile.profile_picture ? (
+                      {profile?.profile_picture ? (
                         <>
                           <Box
                             sx={{
@@ -487,9 +560,7 @@ function Profile() {
                               cursor: "pointer",
                               fontWeight: "bold",
                             }}
-                            onClick={() =>
-                              fileInputRef.current && fileInputRef.current.click()
-                            }
+                            onClick={() => fileInputRef.current && fileInputRef.current.click()}
                           >
                             <EditIcon sx={{ fontSize: 20, mr: 0.5 }} />
                             <Typography variant="body2" sx={{ fontWeight: "700" }}>
@@ -519,9 +590,7 @@ function Profile() {
                             cursor: "pointer",
                             fontWeight: "bold",
                           }}
-                          onClick={() =>
-                            fileInputRef.current && fileInputRef.current.click()
-                          }
+                          onClick={() => fileInputRef.current && fileInputRef.current.click()}
                         >
                           <AddAPhotoIcon sx={{ fontSize: 20, mr: 0.5 }} />
                           <Typography variant="body2" sx={{ fontWeight: "700" }}>
@@ -538,35 +607,35 @@ function Profile() {
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                       <Person sx={{ color: theme.palette.primary.main }} />
                       <Typography variant="body2" sx={{ color: "text.primary" }}>
-                        <strong>Username:</strong> {profile.username}
+                        <strong>Username:</strong> {profile?.username}
                       </Typography>
                     </Box>
 
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                       <Info sx={{ color: theme.palette.primary.main }} />
                       <Typography variant="body2" sx={{ color: "text.primary" }}>
-                        <strong>Bio:</strong> {profile.bio || "No bio provided"}
+                        <strong>Bio:</strong> {profile?.bio || "No bio provided"}
                       </Typography>
                     </Box>
 
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                       <LocationOn sx={{ color: theme.palette.primary.main }} />
                       <Typography variant="body2" sx={{ color: "text.primary" }}>
-                        <strong>Location:</strong> {profile.location || "Not specified"}
+                        <strong>Location:</strong> {profile?.location || "Not specified"}
                       </Typography>
                     </Box>
 
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                       <Phone sx={{ color: theme.palette.primary.main }} />
                       <Typography variant="body2" sx={{ color: "text.primary" }}>
-                        <strong>Phone:</strong> {profile.phone_number || "N/A"}
+                        <strong>Phone:</strong> {profile?.phone_number || "N/A"}
                       </Typography>
                     </Box>
 
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                       <EmojiEvents sx={{ color: theme.palette.primary.main }} />
                       <Typography variant="body2" sx={{ color: "text.primary" }}>
-                        <strong>Interests:</strong> {profile.interests || "No interests added"}
+                        <strong>Interests:</strong> {profile?.interests || "No interests added"}
                       </Typography>
                     </Box>
                   </Box>
